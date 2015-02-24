@@ -1,6 +1,6 @@
 CFLAGS=`pkg-config --cflags --libs libusb`
 INSTALL_PREFIX=/usr/local
-INSTALL_LIBDIR=$(INSTALL_PREFIX)/lib/j2534
+INSTALL_LIBDIR=$(INSTALL_PREFIX)/lib/
 
 j2534: j2534.o
 	gcc -g -shared j2534.o $(CFLAGS) -o j2534.so
