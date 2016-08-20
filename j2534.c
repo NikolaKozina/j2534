@@ -1,9 +1,14 @@
+// requires write permission to device, add udev rule entry such as this to allow:
+// SUBSYSTEM=="usb", ATTRS{idVendor}=="0403", ATTR{idProduct}=="cc4d",GROUP="dialout",MODE="0666"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <libusb.h>
 #include <string.h>
 
-#define LOGFILE "~/op.log"
+char DllVersion[] = "1.0.1";
+char ApiVersion[] = "04.04";
+#define LOGFILE "/tmp/op.log"
 #define LOGENABLE true
 
 typedef struct _SCONFIG
@@ -139,8 +144,32 @@ long PassThruOpen( char* pName )
     printf("context: %.8X\n",(int)con->ctx);
 
     r=libusb_init(NULL);
+	if(r < 0) {
+		writelog("Init Error: ");
+		writelog(r); //there was an error
+	    writelog("\n");
+		return 1;
+	}
     libusb_set_debug(NULL,3);
     con->dev_handle=libusb_open_device_with_vid_pid(con->ctx,0x0403,0xcc4d);
+	if(con->dev_handle == NULL)
+		writelog("Cannot open device\n");
+	else
+		writelog("Device Opened\n");
+
+	//find out if kernel driver is attached
+	if(libusb_kernel_driver_active(con->dev_handle, 0) == 1) {
+		writelog("Kernel Driver Active\n");
+		if(libusb_detach_kernel_driver(con->dev_handle, 0) == 0) //detach it
+			writelog("Kernel Driver Detached!\n");
+	}
+	//claim interface
+	r = libusb_claim_interface(con->dev_handle, 0);
+	if(r < 0) {
+		writelog("Cannot Claim Interface\n");
+		return 1;
+	}
+	writelog("Claimed Interface\n");
 
     char *data=malloc(sizeof(char)*80);
     data[0]=0x0d;
@@ -653,9 +682,16 @@ long PassThruSetProgrammingVoltage( long pinNumber, long voltage )
 long PassThruReadVersion( long DeviceID, char* pFirmwareVersion, char* pDllVersion, char* pApiVersion )
 {
     printf("ReadVersion");
-    writelog("ReadVersion\n\t|\n");
-    writelog(con->VersionString);
-    pFirmwareVersion=con->VersionString;
+    writelog("ReadVersion\n\t|\n\tfwVer : ");
+    strcpy(pFirmwareVersion,con->VersionString);
+    strcpy(pDllVersion,DllVersion);
+    strcpy(pApiVersion,ApiVersion);
+    writelog(pFirmwareVersion);
+    writelog("\tlibVer: ");
+    writelog(pDllVersion);
+    writelog("\n\tapiVer: ");
+    writelog(pApiVersion);
+    writelog("\n");
     writelog("EndReadVersion\n");
     return 0;
 }
@@ -728,4 +764,3 @@ long PassThruIoctl( long ChannelID, long ioctlID, SCONFIG_LIST *pInput, char* pO
     writelog("EndIoctl\n");
     return 0;
 }
-
