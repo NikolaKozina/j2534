@@ -6,7 +6,7 @@
 #include <libusb.h>
 #include <string.h>
 
-char DllVersion[] = "1.0.1";
+char DllVersion[] = "1.0.2";
 char ApiVersion[] = "04.04";
 #define LOGFILE "/tmp/op.log"
 #define LOGENABLE true
@@ -127,7 +127,7 @@ ConnectionStruct *con;
 int KillSwitch=0;
 
 
-long PassThruOpen( char* pName )
+long PassThruOpen( char* pName, long* pDeviceID)
 {
     int r;
     int cnt;
@@ -141,21 +141,25 @@ long PassThruOpen( char* pName )
 
     con=malloc(sizeof(ConnectionStruct));
     con->ctx=NULL;
-    printf("context: %.8X\n",(int)con->ctx);
 
-    r=libusb_init(NULL);
+    r=libusb_init(&con->ctx);
+    printf("context: %.8X\n",(int)con->ctx);
 	if(r < 0) {
 		writelog("Init Error: ");
 		writelog(r); //there was an error
 	    writelog("\n");
-		return 1;
+		return 7;
 	}
-    libusb_set_debug(NULL,3);
+    libusb_set_debug(con->ctx,3);
     con->dev_handle=libusb_open_device_with_vid_pid(con->ctx,0x0403,0xcc4d);
-	if(con->dev_handle == NULL)
+	if(con->dev_handle == NULL) {
 		writelog("Cannot open device\n");
-	else
+		return 8;
+	}
+	else {
 		writelog("Device Opened\n");
+		pDeviceID=con->dev_handle;
+	}
 
 	//find out if kernel driver is attached
 	if(libusb_kernel_driver_active(con->dev_handle, 0) == 1) {
@@ -167,7 +171,7 @@ long PassThruOpen( char* pName )
 	r = libusb_claim_interface(con->dev_handle, 0);
 	if(r < 0) {
 		writelog("Cannot Claim Interface\n");
-		return 1;
+		return 14;
 	}
 	writelog("Claimed Interface\n");
 
@@ -220,7 +224,7 @@ long PassThruClose( long DeviceID )
     libusb_close(con->dev_handle);
     libusb_exit(NULL);
     writelog("Closed\n");
-    return 0;
+    return r;
 }
 
 long PassThruConnect( long DeviceID, long protocolID, long flags, long baud, long* pChannelID )
@@ -247,8 +251,8 @@ long PassThruConnect( long DeviceID, long protocolID, long flags, long baud, lon
     strcat(data," ");
     snprintf(str,15,"%d",(int)baud);
     strcat(data,str);
-    char* spot;
-    spot=strchr(data,'8');
+//    char* spot;
+//    spot=strchr(data,'8');
 
     int strln;
     strln=strlen(data);
@@ -272,6 +276,7 @@ long PassThruConnect( long DeviceID, long protocolID, long flags, long baud, lon
 long PassThruDisconnect( long channelID )
 {
     printf("OPEN");
+    writelog("PT Disconnect\n");
     return 0;
 }
 
@@ -443,6 +448,7 @@ long PassThruReadMsgs( long ChannelID, PASSTHRU_MSG* pMsg, long* pNumMsgs, long 
         writelog("\n");
     }
     writelogx("ReadMsg End\n",unique);
+    free(data);
     return 0;
 }
 
@@ -646,6 +652,7 @@ long PassThruStartMsgFilter( long ChannelID, long FilterType, PASSTHRU_MSG *pMas
     r=libusb_bulk_transfer(con->dev_handle,(0x02 | LIBUSB_ENDPOINT_OUT),data,strlen(data)+2,&byteswritten,0);
     r=libusb_bulk_transfer(con->dev_handle,(0x82 | LIBUSB_ENDPOINT_IN),data,80,&byteswritten,0);
     writelog("EndStartMsgFilter\n");
+    free(data);
     return 0;
 }
 
@@ -666,7 +673,8 @@ int main(int argc, char** argv)
 {
     printf("PassThru Struct Size: %d",sizeof(PASSTHRU_MSG));
     return 0;
-    PassThruOpen(NULL);
+    long* pDeviceID;
+    PassThruOpen(NULL,pDeviceID);
     PassThruConnect((int)NULL,(int)NULL,0x0200,4800,NULL);
     PassThruStartMsgFilter((int)NULL,(int)NULL,NULL,NULL,NULL,NULL);
     PassThruClose((int)NULL);
@@ -676,6 +684,7 @@ int main(int argc, char** argv)
 long PassThruSetProgrammingVoltage( long pinNumber, long voltage )
 {
     printf("OPEN");
+    writelog("SetProgrammingVoltage not support yet\n");
     return 0;
 }
 
@@ -696,24 +705,15 @@ long PassThruReadVersion( long DeviceID, char* pFirmwareVersion, char* pDllVersi
     return 0;
 }
 
-long PassThruGetLastError( long ChannelID, long ioctlID, char* pInput, char* pOutput )
+long PassThruGetLastError( char* pErrorDescription )
 {
     printf("OPEN");
     writelog("GetLastError\n\t|\n");
-    writelog("\tChannelID:\t");
-    writeloghex(ChannelID);
-    writelog("\n\tioctlID:\t");
-    writeloghex(ioctlID);
-    writelog("\n\tpInput:\t");
-    if (pInput==NULL)
+    writelog("\n\tErrorDescription:\t");
+    if (pErrorDescription==NULL)
         writelog("x");
     else
-        writelog(pInput);
-    writelog("\n\tpOutput:\t");
-    if (pOutput==NULL)
-        writelog("x");
-    else
-        writelog(pOutput);
+        writelog(pErrorDescription);
     writelog("\n");
     writelog("EndGetLastError\n");
     return 0;
