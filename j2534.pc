@@ -7,9 +7,9 @@ includedir=${prefix}/include/
 
 Name: openport
 Description: J2534 driver
-Version: 1.0.0
-Requires: libusb
+Version: 2.0.1
+Requires: libusb-1.0
 Conflicts:
 Libs: -L${libdir} -lj2534
-Libs.private: -lj2534 
+Libs.private: -lj2534
 Cflags: -I${includedir}/j2534 -D_GNU_SOURCE=1 -D_REENTRANT
