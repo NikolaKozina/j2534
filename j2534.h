@@ -12,7 +12,7 @@ typedef struct _SCONFIG
 typedef struct _SCONFIG_LIST
 {
     unsigned long NumOfParams;
-    SCONFIG *ConfigPtr;
+    SCONFIG* ConfigPtr;
 } SCONFIG_LIST;
 
 typedef struct _PASSTHRU_MSG
@@ -26,24 +26,28 @@ typedef struct _PASSTHRU_MSG
     unsigned char Data[4128];
 } PASSTHRU_MSG;
 
-typedef struct ConnectionStruct{
-    libusb_device **devs;
-    libusb_context *ctx;
+typedef struct _ConnectionStruct
+{
+    libusb_device** devs;
+    libusb_context* ctx;
     char* VersionString;
-    struct libusb_device_handle *dev_handle;
-}ConnectionStruct;
+    struct libusb_device_handle* dev_handle;
+} ConnectionStruct;
 
-long PassThruOpen( char* pName, long* pDeviceID );
-long PassThruClose( long DeviceID );
-long PassThruConnect( long DeviceID, long protocolID, long flags, long baud, long* pChannelID );
-long PassThruDisconnect( long channelID );
-long PassThruReadMsgs( long ChannelID, PASSTHRU_MSG* pMsg, long* pNumMsgs, long Timeout );
-long PassThruWriteMsgs( long ChannelID, PASSTHRU_MSG* pMsg, long* pNumMsgs, long timeInterval );
-long PassThruStartPeriodicMsg( long ChannelID, char* pMsg, long* pMsgID, long timeInterval );
-long PassThruStopPeriodicMsg( long ChannelID, long msgID );
-long PassThruStartMsgFilter( long ChannelID, long FilterType, PASSTHRU_MSG *pMaskMsg, PASSTHRU_MSG *pPatternMsg, PASSTHRU_MSG *pFlowControlMsg, long* pMsgID );
-long PassThruStopMsgFilter( long ChannelID, long msgID );
-long PassThruSetProgrammingVoltage( long DeviceID, long pinNumber, long voltage );
-long PassThruReadVersion( char* pFirmwareVersion, char* pDllVersion, char* pApiVersion );
-long PassThruGetLastError( char* pErrorDescription );
-long PassThruIoctl( long ChannelID, long ioctlID, SCONFIG_LIST *pInput, char* pOutput);
+long PassThruOpen(const void* pName, unsigned long* pDeviceID);
+long PassThruClose(unsigned long DeviceID);
+long PassThruConnect(unsigned long DeviceID, unsigned long ProtocolID, unsigned long Flags,
+					unsigned long Baudrate, unsigned long* pChannelID);
+long PassThruDisconnect(unsigned long ChannelID);
+long PassThruReadMsgs(unsigned long ChannelID, PASSTHRU_MSG* pMsg, unsigned long* pNumMsgs, unsigned long Timeout);
+long PassThruWriteMsgs(unsigned long ChannelID, const PASSTHRU_MSG* pMsg, unsigned long* pNumMsgs, unsigned long Timeout);
+long PassThruStartPeriodicMsg(unsigned long ChannelID, const PASSTHRU_MSG* pMsg, unsigned long* pMsgID, unsigned long TimeInterval);
+long PassThruStopPeriodicMsg(unsigned long ChannelID, unsigned long MsgID);
+long PassThruStartMsgFilter(unsigned long ChannelID,
+                      unsigned long FilterType, const PASSTHRU_MSG* pMaskMsg, const PASSTHRU_MSG* pPatternMsg,
+                      const PASSTHRU_MSG* pFlowControlMsg, unsigned long* pMsgID);
+long PassThruStopMsgFilter(unsigned long ChannelID, unsigned long MsgID);
+long PassThruSetProgrammingVoltage(unsigned long DeviceID, unsigned long Pin, unsigned long Voltage);
+long PassThruReadVersion(unsigned long DeviceID, char* pApiVersion, char* pDllVersion, char* pFirmwareVersion);
+long PassThruGetLastError(char* pErrorDescription);
+long PassThruIoctl(unsigned long ChannelID, unsigned long IoctlID, const void* pInput, void* pOutput);
