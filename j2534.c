@@ -16,7 +16,7 @@
 #include <byteswap.h>
 #include "j2534.h"
 
-const char* DllVersion = "2.0.1";
+const char* DllVersion = "2.0.2";
 const char* ApiVersion = "04.04";
 const int VENDOR_ID = 0x0403;
 const int PRODUCT_ID = 0xCC4D;
@@ -968,6 +968,7 @@ long PassThruIoctl(unsigned long ChannelID, unsigned long ioctlID,
 	writeloghex(ioctlID);
 	int8_t* data = malloc(sizeof(int8_t) * 80);
 	int bytes_written, bytes_read, r, i;
+	r = 1;
 	if (ioctlID == 1)
 	{
 		const SCONFIG_LIST* inputlist = pInput;
@@ -1050,15 +1051,17 @@ long PassThruIoctl(unsigned long ChannelID, unsigned long ioctlID,
 	if (ioctlID == 7)
 	{
 		writelog(" [CLEAR_TX_BUFFER]\n");
+		r = 0;
 	}
 	if (ioctlID == 8)
 	{
 		memset(&msgBuf, 0, sizeof(msgBuf));
 		uint32_t rcvBufIndex = 0;
 		writelog(" [CLEAR_RX_BUFFER]\n");
+		r = 0;
 	}
 	free(data);
 	data = NULL;
 	writelog("EndIoctl\n");
-	return 0;
+	return r;
 }
