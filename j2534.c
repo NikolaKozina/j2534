@@ -16,7 +16,7 @@
 #include <byteswap.h>
 #include "j2534.h"
 
-const char* DllVersion = "2.0.2";
+const char* DllVersion = "2.0.3";
 const char* ApiVersion = "04.04";
 const int VENDOR_ID = 0x0403;
 const int PRODUCT_ID = 0xCC4D;
@@ -639,7 +639,7 @@ long PassThruReadMsgs(unsigned long ChannelID, PASSTHRU_MSG* pMsg,
 								msgBuf[rcvBufIndex].ExtraDataIndex = dataSize;
 								msgBuf[rcvBufIndex].RxStatus = 9;	// TX Done Loopback
 							}
-							if (channel_id == 0x33)	// K-line message
+							if (channel_id == 0x33 || channel_id == 0x34)	// K-line message
 							{
 								msgBuf[rcvBufIndex].DataSize = 0;
 								msgBuf[rcvBufIndex].ExtraDataIndex = 0;
@@ -677,7 +677,7 @@ long PassThruReadMsgs(unsigned long ChannelID, PASSTHRU_MSG* pMsg,
 								msgBuf[rcvBufIndex].DataSize = dataSize;
 								msgBuf[rcvBufIndex].ExtraDataIndex = dataSize;
 							}
-							if (channel_id == 0x33)	// K-line message
+							if (channel_id == 0x33 || channel_id == 0x34)	// K-line message
 							{
 								datacopy(&msgBuf[rcvBufIndex], data, 0, pos, (data[len] - 1));
 								dataSize = msgBuf[rcvBufIndex].DataSize + (data[len] - 1);
@@ -1022,7 +1022,7 @@ long PassThruIoctl(unsigned long ChannelID, unsigned long ioctlID,
 			r = libusb_bulk_transfer(con->dev_handle, endpoint->addr_out,
 					data, strlen(data), &bytes_written, 0);
 			r = libusb_bulk_transfer(con->dev_handle, endpoint->addr_in,
-					data, 80, &bytes_read, 0);
+					data, 80, &bytes_read, 500);
 		}
 	}
 	if (ioctlID == 3)
@@ -1048,6 +1048,39 @@ long PassThruIoctl(unsigned long ChannelID, unsigned long ioctlID,
 		writelognumber((int)*vBatt);
 		writelog("mV\n");
 	}
+	if (ioctlID == 5)
+	{
+		const PASSTHRU_MSG* pMsg = pInput;
+		writelog(" [FAST INIT]\n");
+		writelogpassthrumsg(pMsg);
+		snprintf(data, 80, "aty%d %d 0\r\n\0", (int) ChannelID,
+				(int) pMsg->DataSize);
+		for (i = 0; i < (int) pMsg->DataSize; ++i)
+		{
+			data[10 + i] = pMsg->Data[i];
+		}
+		r = libusb_bulk_transfer(con->dev_handle, endpoint->addr_out,
+				data, strlen(data), &bytes_written, 0);
+		if (r < 0)
+			goto EXIT_IOCTL;
+		r = libusb_bulk_transfer(con->dev_handle, endpoint->addr_in,
+				data, 80, &bytes_read, 500);
+		if (r < 0)
+			goto EXIT_IOCTL;
+		uint64_t len = (uint64_t) atol(data + 5);
+		r = libusb_bulk_transfer(con->dev_handle, endpoint->addr_in,
+				data, 80, &bytes_read, 500);
+		if (r < 0)
+			goto EXIT_IOCTL;
+		PASSTHRU_MSG* pOutMsg = pOutput;
+		pOutMsg->DataSize = 0;
+		datacopy(pOutMsg, data,	0, 0, len);
+		pOutMsg->DataSize = len;
+		pOutMsg->ExtraDataIndex = len;
+		pOutMsg->RxStatus = 0;
+		pOutMsg->ProtocolID = ChannelID;
+		writelogpassthrumsg(pOutMsg);
+	}
 	if (ioctlID == 7)
 	{
 		writelog(" [CLEAR_TX_BUFFER]\n");
@@ -1060,6 +1093,7 @@ long PassThruIoctl(unsigned long ChannelID, unsigned long ioctlID,
 		writelog(" [CLEAR_RX_BUFFER]\n");
 		r = 0;
 	}
+	EXIT_IOCTL:
 	free(data);
 	data = NULL;
 	writelog("EndIoctl\n");
