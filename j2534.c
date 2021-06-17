@@ -13,7 +13,7 @@
 #include <stdlib.h>
 #include <libusb.h>
 #include <string.h>
-#include <byteswap.h>
+#include "byteswap.h"
 #include "j2534.h"
 
 const char* DllVersion = "2.0.3";
@@ -294,7 +294,6 @@ long PassThruOpen(const void* pName, unsigned long* pDeviceID)
 	r = get_endpoints(devs, cnt, VENDOR_ID, PRODUCT_ID, endpoint);
 	libusb_free_device_list(devs, 1);
 
-	libusb_set_debug(con->ctx, 3);
 	con->dev_handle = libusb_open_device_with_vid_pid(con->ctx, VENDOR_ID,
 			PRODUCT_ID);
 	if (con->dev_handle == NULL )
