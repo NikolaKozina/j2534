@@ -702,6 +702,9 @@ long PassThruReadMsgs(unsigned long ChannelID, PASSTHRU_MSG* pMsg,
 						case (uint8_t) 0x40:	// Msg end indication
 							msg_type = "RX Msg";
 							goto SKIP_60;
+						case (uint8_t) 0x44:  // Ext Msg end indication
+							msg_type = "Ext RX Msg";
+							goto SKIP_60;
 						case (uint8_t) 0x60:	// LB msg end indication
 							msg_type = "LB Msg";
 						SKIP_60:
