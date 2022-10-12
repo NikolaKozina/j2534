@@ -995,7 +995,7 @@ int32_t PassThruReadMsgs(const unsigned long ChannelID, PASSTHRU_MSG *pMsg,
 								dataSize = msgBuf->DataSize + (data[len] - 5);
 								msgBuf->DataSize = dataSize;
 								msgBuf->ExtraDataIndex = 0;
-								msgBuf->RxStatus = 9;	// TX Done Loopback
+								msgBuf->RxStatus = 2;	// Msg start indication
 							}
 							if (channel_id == ISO9141 || channel_id == ISO14230)	// K-line message
 							{
