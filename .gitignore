@@ -1,0 +1,15 @@
+.settings/
+.vs/
+backups/
+j2534/.vs/
+j2534/j2534/Release/
+j2534/j2534/x64/
+libusb/
+Release/
+x64/
+.cproject
+.project
+*.dylib
+*.log
+*.o
+*.so
